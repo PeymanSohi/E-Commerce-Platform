@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:5000']
+
+  - job_name: 'product-service'
+    static_configs:
+      - targets: ['product-service:5001']
+
+  - job_name: 'cart-service'
+    static_configs:
+      - targets: ['cart-service:5002']
+
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['order-service:5003']
+
+  - job_name: 'payment-service'
+    static_configs:
+      - targets: ['payment-service:5004']
+
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:5005']
