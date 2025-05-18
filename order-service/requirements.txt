@@ -1,0 +1,2 @@
+# order-service/requirements.txt
+flask

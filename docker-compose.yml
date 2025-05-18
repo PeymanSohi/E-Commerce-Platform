@@ -1,0 +1,69 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "5000:5000"
+    container_name: user-service
+    networks:
+      - ecommerce-net
+
+  product-service:
+    build: ./product-service
+    ports:
+      - "5001:5001"
+    container_name: product-service
+    networks:
+      - ecommerce-net
+
+  cart-service:
+    build: ./cart-service
+    ports:
+      - "5002:5002"
+    container_name: cart-service
+    networks:
+      - ecommerce-net
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "5003:5003"
+    container_name: order-service
+    networks:
+      - ecommerce-net
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "5004:5004"
+    container_name: payment-service
+    networks:
+      - ecommerce-net
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "5005:5005"
+    container_name: notification-service
+    networks:
+      - ecommerce-net
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - user-service
+      - product-service
+      - cart-service
+      - order-service
+      - payment-service
+      - notification-service
+    networks:
+      - ecommerce-net
+
+networks:
+  ecommerce-net:
+    driver: bridge

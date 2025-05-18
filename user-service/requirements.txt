@@ -1,0 +1,3 @@
+# user-service/requirements.txt
+flask
+flask-jwt-extended
