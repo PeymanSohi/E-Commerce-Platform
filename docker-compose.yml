@@ -5,7 +5,7 @@ services:
   user-service:
     build: ./user-service
     ports:
-      - "5000:5000"
+      - "5006:5006"
     container_name: user-service
     networks:
       - ecommerce-net
