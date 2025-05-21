@@ -1,54 +1,46 @@
-# order-service/app.py
 from flask import Flask, request, jsonify
-import uuid
-from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
-orders = {}  # In-memory: {username: [order1, order2, ...]}
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-@app.route('/order/<username>', methods=['POST'])
-def place_order(username):
+db = SQLAlchemy(app)
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(50), nullable=False)
+    products = db.Column(db.String(500), nullable=False)  # e.g., JSON string
+    status = db.Column(db.String(20), default='Pending')
+
+def create_tables():
+    with app.app_context():
+        db.create_all()
+
+@app.route('/orders', methods=['POST'])
+def place_order():
     data = request.json
-    if not data.get('items'):
-        return jsonify({'msg': 'No items provided'}), 400
+    order = Order(user_id=data['user_id'], products=str(data['products']))
+    db.session.add(order)
+    db.session.commit()
+    return jsonify({'message': 'Order placed', 'order_id': order.id}), 201
 
-    order_id = str(uuid.uuid4())
-    order = {
-        'order_id': order_id,
-        'timestamp': datetime.utcnow().isoformat(),
-        'items': data['items'],  # List of {product_id, quantity}
-        'total': data.get('total', 0),
-        'status': 'placed'
-    }
+@app.route('/orders/<string:user_id>', methods=['GET'])
+def get_orders(user_id):
+    orders = Order.query.filter_by(user_id=user_id).all()
+    return jsonify([{
+        'id': o.id,
+        'products': o.products,
+        'status': o.status
+    } for o in orders])
 
-    orders.setdefault(username, []).append(order)
-    return jsonify({'msg': 'Order placed', 'order': order}), 201
-
-@app.route('/order/<username>', methods=['GET'])
-def get_orders(username):
-    return jsonify(orders.get(username, []))
-
-@app.route('/order/<username>/<order_id>', methods=['GET'])
-def get_order(username, order_id):
-    user_orders = orders.get(username, [])
-    for order in user_orders:
-        if order['order_id'] == order_id:
-            return jsonify(order)
-    return jsonify({'msg': 'Order not found'}), 404
-
-@app.route('/order/<username>/<order_id>/status', methods=['PATCH'])
-def update_order_status(username, order_id):
-    data = request.json
-    new_status = data.get('status')
-    if not new_status:
-        return jsonify({'msg': 'Missing status'}), 400
-
-    for order in orders.get(username, []):
-        if order['order_id'] == order_id:
-            order['status'] = new_status
-            return jsonify({'msg': 'Status updated', 'order': order})
-    return jsonify({'msg': 'Order not found'}), 404
+@app.route('/health')
+def health():
+    return {"status": "order-service is healthy"}, 200
 
 if __name__ == '__main__':
+    create_tables()
     app.run(host='0.0.0.0', port=5003)

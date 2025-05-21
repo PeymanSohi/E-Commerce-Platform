@@ -7,6 +7,10 @@ jwt = JWTManager(app)
 
 users = {}
 
+@app.route('/health')
+def health():
+    return {"status": "user-service is healthy"}, 200
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json

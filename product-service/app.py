@@ -17,9 +17,13 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, nullable=False)
 
-@app.before_first_request
 def create_tables():
-    db.create_all()
+    with app.app_context():
+        db.create_all()
+
+@app.route('/health')
+def health():
+    return {"status": "product-service is healthy"}, 200
 
 @app.route('/products', methods=['GET'])
 def get_products():
@@ -53,4 +57,5 @@ def delete_product(id):
     return jsonify({'message': 'Product deleted'}), 200
 
 if __name__ == '__main__':
+    create_tables()
     app.run(host='0.0.0.0', port=5001)
