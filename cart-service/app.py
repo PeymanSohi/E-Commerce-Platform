@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import requests
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cart.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://ecommerce_user:ecommerce_pass@mysql:3306/ecommerce'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -18,12 +18,15 @@ class CartItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
 
 def create_tables():
-    with app.app_context():
-        db.create_all()
-
-@app.route('/health')
-def health():
-    return {"status": "cart-service is healthy"}, 200
+    for _ in range(10):
+        try:
+            with app.app_context():
+                db.create_all()
+            print("✅ Tables created")
+            break
+        except Exception as e:
+            print("⏳ Waiting for MySQL...", str(e))
+            time.sleep(3)
 
 @app.route('/cart/<string:user_id>', methods=['GET'])
 def get_cart(user_id):
@@ -39,14 +42,12 @@ def add_to_cart(user_id):
     data = request.json
     product_id = data['product_id']
     quantity = data['quantity']
-
     existing_item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
     if existing_item:
         existing_item.quantity += quantity
     else:
         new_item = CartItem(user_id=user_id, product_id=product_id, quantity=quantity)
         db.session.add(new_item)
-
     db.session.commit()
     return jsonify({'message': 'Item added to cart'}), 201
 
@@ -58,6 +59,10 @@ def remove_item(user_id, item_id):
     db.session.delete(item)
     db.session.commit()
     return jsonify({'message': 'Item removed'}), 200
+
+@app.route('/health')
+def health():
+    return {"status": "cart-service is healthy"}, 200
 
 if __name__ == '__main__':
     create_tables()

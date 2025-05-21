@@ -26,6 +26,35 @@ services:
       - "5003:5003"
     networks:
       - backend
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "5004:5004"
+    networks:
+      - backend
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "5005:5005"
+    networks:
+      - backend
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ecommerce_user
+      MYSQL_PASSWORD: ecommerce_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+
+volumes:
+  mysql_data:
 
 networks:
   backend:

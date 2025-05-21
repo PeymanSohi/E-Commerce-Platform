@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://ecommerce_user:ecommerce_pass@mysql:3306/ecommerce'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -18,12 +19,15 @@ class Product(db.Model):
     stock = db.Column(db.Integer, nullable=False)
 
 def create_tables():
-    with app.app_context():
-        db.create_all()
-
-@app.route('/health')
-def health():
-    return {"status": "product-service is healthy"}, 200
+    for _ in range(10):
+        try:
+            with app.app_context():
+                db.create_all()
+            print("✅ Tables created")
+            break
+        except Exception as e:
+            print("⏳ Waiting for MySQL...", str(e))
+            time.sleep(3)
 
 @app.route('/products', methods=['GET'])
 def get_products():
@@ -55,6 +59,10 @@ def delete_product(id):
     db.session.delete(product)
     db.session.commit()
     return jsonify({'message': 'Product deleted'}), 200
+
+@app.route('/health')
+def health():
+    return {"status": "product-service is healthy"}, 200
 
 if __name__ == '__main__':
     create_tables()

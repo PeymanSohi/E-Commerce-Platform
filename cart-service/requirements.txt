@@ -2,3 +2,4 @@ Flask==2.3.2
 Flask-Cors==4.0.0
 Flask-SQLAlchemy==3.1.1
 requests==2.31.0  # to fetch product data from product-service
+mysqlclient==2.2.0

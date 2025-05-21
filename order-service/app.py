@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import time
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://ecommerce_user:ecommerce_pass@mysql:3306/ecommerce'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -13,19 +15,41 @@ db = SQLAlchemy(app)
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
-    products = db.Column(db.String(500), nullable=False)  # e.g., JSON string
+    products = db.Column(db.String(500), nullable=False)
     status = db.Column(db.String(20), default='Pending')
 
 def create_tables():
-    with app.app_context():
-        db.create_all()
+    for _ in range(10):
+        try:
+            with app.app_context():
+                db.create_all()
+            print("✅ Tables created")
+            break
+        except Exception as e:
+            print("⏳ Waiting for MySQL...", str(e))
+            time.sleep(3)
 
 @app.route('/orders', methods=['POST'])
 def place_order():
     data = request.json
-    order = Order(user_id=data['user_id'], products=str(data['products']))
+    user_id = data['user_id']
+    product_list = data['products']
+    amount = sum(p['price'] * p['quantity'] for p in product_list)
+
+    order = Order(user_id=user_id, products=str(product_list))
     db.session.add(order)
     db.session.commit()
+
+    try:
+        response = requests.post("http://payment-service:5004/pay", json={
+            "user_id": user_id,
+            "order_id": order.id,
+            "amount": amount
+        })
+        print(f"[order-service] Payment response: {response.text}")
+    except Exception as e:
+        print(f"[order-service] Payment call error: {e}")
+
     return jsonify({'message': 'Order placed', 'order_id': order.id}), 201
 
 @app.route('/orders/<string:user_id>', methods=['GET'])

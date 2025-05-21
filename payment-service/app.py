@@ -1,40 +1,61 @@
-# payment-service/app.py
 from flask import Flask, request, jsonify
-import uuid
-from datetime import datetime
+from flask_cors import CORS
+import random
+import requests
 
 app = Flask(__name__)
-
-payments = {}  # In-memory store {payment_id: payment_info}
+CORS(app)
 
 @app.route('/pay', methods=['POST'])
 def process_payment():
     data = request.json
-    required_fields = ['username', 'order_id', 'amount', 'payment_method']
+    user_id = data.get("user_id")
+    order_id = data.get("order_id")
+    amount = data.get("amount")
 
-    if not all(field in data for field in required_fields):
-        return jsonify({'msg': 'Missing fields'}), 400
+    # Simulate success/failure (90% success rate)
+    if random.random() < 0.9:
+        return jsonify({
+            "status": "success",
+            "message": f"Payment of ${amount} for order {order_id} by user {user_id} successful"
+        }), 200
+    else:
+        return jsonify({
+            "status": "failure",
+            "message": "Payment failed due to bank error"
+        }), 500
 
-    payment_id = str(uuid.uuid4())
-    payment = {
-        'payment_id': payment_id,
-        'username': data['username'],
-        'order_id': data['order_id'],
-        'amount': data['amount'],
-        'payment_method': data['payment_method'],
-        'status': 'success',
-        'timestamp': datetime.utcnow().isoformat()
-    }
+@app.route('/pay', methods=['POST'])
+def process_payment():
+    data = request.json
+    user_id = data.get("user_id")
+    order_id = data.get("order_id")
+    amount = data.get("amount")
 
-    payments[payment_id] = payment
-    return jsonify({'msg': 'Payment processed', 'payment': payment}), 200
+    if random.random() < 0.9:
+        message = f"Payment of ${amount} for order {order_id} successful"
 
-@app.route('/payment/<payment_id>', methods=['GET'])
-def get_payment(payment_id):
-    payment = payments.get(payment_id)
-    if payment:
-        return jsonify(payment)
-    return jsonify({'msg': 'Payment not found'}), 404
+        # Notify user
+        try:
+            requests.post("http://notification-service:5005/notify", json={
+                "type": "email",
+                "to": f"{user_id}@example.com",  # Simulated
+                "message": message
+            })
+        except Exception as e:
+            print(f"[payment-service] Failed to notify: {e}")
+
+        return jsonify({"status": "success", "message": message}), 200
+    else:
+        return jsonify({
+            "status": "failure",
+            "message": "Payment failed due to bank error"
+        }), 500
+
+
+@app.route('/health')
+def health():
+    return {"status": "payment-service is healthy"}, 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5004)
