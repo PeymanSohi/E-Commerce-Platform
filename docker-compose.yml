@@ -15,5 +15,12 @@ services:
     networks:
       - backend
 
+  cart-service:
+    build: ./cart-service
+    ports:
+      - "5002:5002"
+    networks:
+      - backend
+
 networks:
   backend:
