@@ -1,135 +1,162 @@
-# 🛒 E-commerce Microservices Platform
+# 🛒 Scalable E-commerce Platform (Microservices + Docker)
 
-A scalable and containerized e-commerce backend built using **microservices architecture** and **Docker**, featuring core services such as user authentication, product catalog, shopping cart, order management, payment processing, and notifications. It also includes support infrastructure such as API Gateway, service discovery (Consul), centralized logging (ELK stack), and monitoring (Prometheus + Grafana).
+This project implements a scalable e-commerce backend using microservices architecture and Docker. Each service is independently deployable, uses MySQL for data persistence, and communicates over REST. It includes centralized logging (ELK), monitoring (Prometheus + Grafana), and an API Gateway for routing.
 
 ---
 
 ## 📦 Microservices Overview
 
-| Service              | Description                                              | Port |
-|----------------------|----------------------------------------------------------|------|
-| `user-service`       | User registration, login, and JWT-based authentication   | 5000 |
-| `product-service`    | Product catalog, categories, and inventory management    | 5001 |
-| `cart-service`       | User shopping cart operations (add, remove, update)      | 5002 |
-| `order-service`      | Order placement and tracking                             | 5003 |
-| `payment-service`    | Payment simulation with order linking                    | 5004 |
-| `notification-service` | Email/SMS notification handling                        | 5005 |
-| `api-gateway`        | Reverse proxy for routing traffic to microservices       | 80   |
+| Service                | Description                              | Port |
+| ---------------------- | ---------------------------------------- | ---- |
+| `user-service`         | User registration, login, JWT auth       | 8000 |
+| `product-service`      | Product catalog and inventory            | 5001 |
+| `cart-service`         | Shopping cart management                 | 5002 |
+| `order-service`        | Order processing, triggers payment       | 5003 |
+| `payment-service`      | Mock payment processing                  | 5004 |
+| `notification-service` | Sends mock emails/SMS                    | 5005 |
+| `api-gateway`          | NGINX reverse proxy for external routing | 8080 |
 
 ---
 
-## 🚀 Getting Started
-
-### ✅ Prerequisites
-
-- [Docker](https://www.docker.com/products/docker-desktop)
-- [Docker Compose](https://docs.docker.com/compose/)
-- (Optional) [GitHub CLI](https://cli.github.com/) if using GitHub Actions
-
----
-
-### 🏗️ Run the Application
-
-From the root of the project:
+## 🚀 How to Run the Project
 
 ```bash
-docker-compose up --build
-````
-
-Access services through the API Gateway at:
-
-* `http://localhost/users/`
-* `http://localhost/products/`
-* `http://localhost/cart/`
-* `http://localhost/orders/`
-* `http://localhost/payments/`
-* `http://localhost/notifications/`
-
----
-
-## 🔧 Infrastructure Components
-
-### 🌐 API Gateway (NGINX)
-
-* Central routing entry for all microservices.
-* Configurable in `api-gateway/nginx.conf`.
-
----
-
-### 🔍 Service Discovery (Consul)
-
-Start Consul:
-
-```bash
-docker-compose -f service-discovery/docker-compose-consul.yml up
+docker-compose -f docker-compose.yml up --build
+docker-compose -f logging/docker-compose-elk.yml up -d
+docker-compose -f monitoring/docker-compose-monitoring.yml up -d
 ```
 
-Visit [http://localhost:8500](http://localhost:8500) to view services and health checks.
+---
+
+## 🧪 API Test Commands via API Gateway (`localhost:8080`)
+
+### 🧍 User Service
+
+**Register a user**
+
+```bash
+curl -X POST http://localhost:8080/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "john", "password": "pass123"}'
+```
+
+**Login a user**
+
+```bash
+curl -X POST http://localhost:8080/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "john", "password": "pass123"}'
+```
 
 ---
 
-### 📜 Centralized Logging (ELK Stack)
+### 📦 Product Service
 
-Start logging stack:
+**Add product**
 
 ```bash
-docker-compose -f logging/docker-compose-elk.yml up
+curl -X POST http://localhost:8080/products/ \
+  -H "Content-Type: application/json" \
+  -d '{"name": "iPhone 15", "category": "electronics", "price": 999.99, "stock": 10}'
 ```
 
-* Kibana: [http://localhost:5601](http://localhost:5601)
-* Elasticsearch: [http://localhost:9200](http://localhost:9200)
+**List all products**
 
-Logs are collected via Logstash on port 5000.
+```bash
+curl http://localhost:8080/products/
+```
 
 ---
 
-### 📊 Monitoring (Prometheus + Grafana)
+### 🛒 Cart Service
 
-Start monitoring stack:
+**Add item to cart**
 
 ```bash
-docker-compose -f monitoring/docker-compose-monitoring.yml up
+curl -X POST http://localhost:8080/cart/john \
+  -H "Content-Type: application/json" \
+  -d '{"product_id": 1, "quantity": 2}'
 ```
+
+**Get cart for user**
+
+```bash
+curl http://localhost:8080/cart/john
+```
+
+---
+
+### 📦 Order Service
+
+**Place an order**
+
+```bash
+curl -X POST http://localhost:8080/orders/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "user_id": "john",
+        "products": [
+          { "product_id": 1, "price": 999.99, "quantity": 2 }
+        ]
+      }'
+```
+
+**List user orders**
+
+```bash
+curl http://localhost:8080/orders/john
+```
+
+---
+
+### 💳 Payment Service
+
+**Simulate payment**
+
+```bash
+curl -X POST http://localhost:8080/pay \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "john", "order_id": "1", "amount": 1999.98}'
+```
+
+---
+
+### 📬 Notification Service
+
+**Send mock email**
+
+```bash
+curl -X POST http://localhost:8080/notify \
+  -H "Content-Type: application/json" \
+  -d '{"type": "email", "to": "john@example.com", "message": "Order confirmed!"}'
+```
+
+---
+
+### ❤️ Health Check Endpoints
+
+```bash
+curl http://localhost:8080/users/health
+curl http://localhost:8080/products/health
+curl http://localhost:8080/cart/health
+curl http://localhost:8080/orders/health
+curl http://localhost:8080/pay/health
+curl http://localhost:8080/notify/health
+```
+
+---
+
+## 📊 Monitoring
 
 * Prometheus: [http://localhost:9090](http://localhost:9090)
-* Grafana: [http://localhost:3000](http://localhost:3000) (login: `admin` / `admin`)
+* Grafana: [http://localhost:3000](http://localhost:3000)
+  *Default login: `admin / admin`*
 
 ---
 
-## 🔁 CI/CD
+## 📚 Logging
 
-This project includes GitHub Actions for automated CI/CD.
-
-Path: `.github/workflows/deploy.yml`
-
-To enable:
-
-1. Push the code to a GitHub repo.
-2. Set DockerHub credentials in repo secrets: `DOCKER_USER`, `DOCKER_PASS`.
+* Kibana: [http://localhost:5601](http://localhost:5601)
+  *Index pattern: `ecommerce-logs*`*
 
 ---
-
-## 🧪 Example Usage
-
-```bash
-# Register a user
-curl -X POST http://localhost/users/register -H "Content-Type: application/json" \
-  -d '{"username": "john", "password": "1234"}'
-
-# Add a product
-curl -X POST http://localhost/products -H "Content-Type: application/json" \
-  -d '{"name": "Laptop", "price": 999.99}'
-```
----
-
-## 🙏 Acknowledgments
-
-* [Docker](https://www.docker.com/)
-* [NGINX](https://www.nginx.com/)
-* [Consul](https://www.consul.io/)
-* [Elastic Stack](https://www.elastic.co/what-is/elk-stack)
-* [Prometheus](https://prometheus.io/)
-* [Grafana](https://grafana.com/)
-
-```
-
