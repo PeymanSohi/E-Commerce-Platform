@@ -1,4 +1,3 @@
-````markdown
 # 🛒 E-commerce Microservices Platform
 
 A scalable and containerized e-commerce backend built using **microservices architecture** and **Docker**, featuring core services such as user authentication, product catalog, shopping cart, order management, payment processing, and notifications. It also includes support infrastructure such as API Gateway, service discovery (Consul), centralized logging (ELK stack), and monitoring (Prometheus + Grafana).
