@@ -2,6 +2,26 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import time
+import logging
+import socket
+import json
+import sys
+from logging.handlers import SocketHandler
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+class JSONLogFormatter(logging.Formatter):
+    def format(self, record):
+        return json.dumps({
+            "service": "cart-service",
+            "level": record.levelname,
+            "message": record.getMessage()
+        })
+
+logstash_handler = SocketHandler("logstash", 5000)
+logstash_handler.setFormatter(JSONLogFormatter())
+logger.addHandler(logstash_handler)
 
 app = Flask(__name__)
 CORS(app)

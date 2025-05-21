@@ -1,30 +1,47 @@
-name: Deploy Microservices
+name: CI/CD - Build and Test Microservices
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Images
-        run: |
-          docker-compose -f docker-compose.yml build
-
-      - name: Push to DockerHub
+    services:
+      mysql:
+        image: mysql:8.0
         env:
-          DOCKER_USER: ${{ secrets.DOCKER_USER }}
-          DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        run: |
-          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-          docker-compose -f docker-compose.yml push
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: ecommerce
+          MYSQL_USER: ecommerce_user
+          MYSQL_PASSWORD: ecommerce_pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
-      - name: Deploy (example step, customize as needed)
-        run: echo "Deploy to server here"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Run docker-compose build
+      run: docker-compose -f docker-compose.yml build
+
+    - name: Run docker-compose up (test mode)
+      run: |
+        docker-compose -f docker-compose.yml up -d
+        sleep 30  # wait for services to fully boot
+
+    - name: Run health check (api-gateway)
+      run: curl -f http://localhost:8080 || (docker-compose logs && exit 1)
+
+    - name: Tear down
+      run: docker-compose down

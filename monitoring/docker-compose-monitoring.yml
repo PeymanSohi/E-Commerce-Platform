@@ -8,15 +8,19 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - monitor-net
+      - backend
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
     networks:
-      - monitor-net
+      - backend
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
 
 networks:
-  monitor-net:
-    driver: bridge
+  backend:
