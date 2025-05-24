@@ -1,21 +1,28 @@
+version: '3.8'
+
 services:
 
-  api-gateway:
-    build: ./api-gateway
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ecommerce_user
+      MYSQL_PASSWORD: ecommerce_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
     ports:
-      - "8080:80"
-    depends_on:
-      - user-service
-      - product-service
-      - cart-service
-      - order-service
-      - payment-service
-      - notification-service
+      - "3306:3306"
     networks:
       - backend
 
   user-service:
     build: ./user-service
+    container_name: user-service
+    depends_on:
+      - mysql
     ports:
       - "8000:8000"
     networks:
@@ -23,6 +30,9 @@ services:
 
   product-service:
     build: ./product-service
+    container_name: product-service
+    depends_on:
+      - mysql
     ports:
       - "5001:5001"
     networks:
@@ -30,6 +40,9 @@ services:
 
   cart-service:
     build: ./cart-service
+    container_name: cart-service
+    depends_on:
+      - mysql
     ports:
       - "5002:5002"
     networks:
@@ -37,12 +50,18 @@ services:
 
   order-service:
     build: ./order-service
+    container_name: order-service
+    depends_on:
+      - mysql
+      - payment-service
     ports:
       - "5003:5003"
     networks:
       - backend
+
   payment-service:
     build: ./payment-service
+    container_name: payment-service
     ports:
       - "5004:5004"
     networks:
@@ -50,23 +69,24 @@ services:
 
   notification-service:
     build: ./notification-service
+    container_name: notification-service
     ports:
       - "5005:5005"
     networks:
       - backend
 
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: ecommerce
-      MYSQL_USER: ecommerce_user
-      MYSQL_PASSWORD: ecommerce_pass
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    depends_on:
+      - user-service
+      - product-service
+      - cart-service
+      - order-service
+      - payment-service
+      - notification-service
     ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d
+      - "8080:80"
     networks:
       - backend
 
